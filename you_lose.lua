@@ -6,6 +6,13 @@
 -----------------------------------------------------------------------------------------
 
 -----------------------------------------------------------------------------------------
+-- SOUNDS
+-----------------------------------------------------------------------------------------
+
+local youLose = audio.loadSound("Sounds/YouLose.mp3")
+local youLoseSoundChannel
+
+-----------------------------------------------------------------------------------------
 -- INITIALIZATIONS
 -----------------------------------------------------------------------------------------
 
@@ -80,6 +87,7 @@ function scene:show( event )
 
     elseif ( phase == "did" ) then
 
+        youLoseSoundChannel = audio.play( youLose ) 
         -- Called when the scene is now on screen.
         -- Insert code here to make the scene come alive.
         -- Example: start timers, begin animation, play audio, etc.
