@@ -49,25 +49,26 @@ local spikes3platform
 
 local torchesAndSign
 local door
-local door2
+local door
 local character
 
 local heart1
 local heart2
-local heart3
-local numLives = 3
+local numLives = 2
 
 local rArrow 
 local uArrow
 local lArrow
 
 local motionx = 0
-local SPEED = 5
+local SPEED = 10
+local SPEED2 = -10
 local LINEAR_VELOCITY = -100
 local GRAVITY = 7
 
 local leftW 
 local topW
+local rightW
 local floor
 
 local ball1
@@ -75,35 +76,34 @@ local ball2
 local ball3
 local theBall
 
-local YouLose
-local YouWin
-
 local questionsAnswered = 0
 
------------------------------------------------------------------------------------------
--- SOUNDS
------------------------------------------------------------------------------------------ 
-
-local popSound = audio.loadSound()
+-- Sound for the spikes
+local popSound = audio.loadSound("Sounds/Pop.mp3")
 local popSoundChannel
 
-local youWinSound = audio.loadSound()
-local youWinSoundChannel
+--Sound for the you lose screen
+local youLoseSound = audio.loadSound("Sounds/BoingSoundEffect.mp3")
+local youLoseSoundChannel
+
+
+-- set the scroll speed 
+scrollSpeed = 7
 
 -----------------------------------------------------------------------------------------
 -- LOCAL SCENE FUNCTIONS
 ----------------------------------------------------------------------------------------- 
-
--- When left arrow is touched, move character left
-local function left (touch)
-    motionx = -SPEED
-    character.xScale = -1
-end
-
+ 
 -- When right arrow is touched, move character right
 local function right (touch)
     motionx = SPEED
     character.xScale = 1
+end
+
+local function left (touch)
+    motionx = SPEED2
+    character.xScale = -1
+
 end
 
 -- When up arrow is touched, add vertical so it can jump
@@ -117,7 +117,8 @@ end
 local function movePlayer (event)
     character.x = character.x + motionx
 end
- 
+
+
 -- Stop character movement when no arrow is pushed
 local function stop (event)
     if (event.phase =="ended") then
@@ -135,7 +136,7 @@ end
 local function RemoveArrowEventListeners()
     rArrow:removeEventListener("touch", right)
     uArrow:removeEventListener("touch", up)
-    lArrow:removeEventListener("touch", left)
+    lArrow:addEventListener("touch", left)
 end
 
 local function AddRuntimeListeners()
@@ -182,17 +183,10 @@ end
 local function MakeHeartsVisible()
     heart1.isVisible = true
     heart2.isVisible = true
-    heart3.isVisible = true
 end
 
 local function YouLoseTransition()
     composer.gotoScene( "you_lose" )
-end
-
-local function Level2Transition( )
-    composer.gotoScene( "you_win" )
-    --audio.stop ()
-    youWinSoundChannel = audio.play(youWinSound)
 end
 
 local function onCollision( self, event )
@@ -205,7 +199,7 @@ local function onCollision( self, event )
 
     if ( event.phase == "began" ) then
 
-        --Pop sound
+        -- Play Pop sound
         popSoundChannel = audio.play(popSound)
 
         if  (event.target.myName == "spikes1") or 
@@ -224,25 +218,16 @@ local function onCollision( self, event )
             -- decrease number of lives
             numLives = numLives - 1
 
-            if (numLives == 2) then
-                -- update hearts
-                heart1.isVisible = true
-                heart2.isVisible = true
-                heart3.isVisible = false
-                timer.performWithDelay(200, ReplaceCharacter) 
-
-             elseif (numLives == 1) then
+            if (numLives == 1) then
                 -- update hearts
                 heart1.isVisible = true
                 heart2.isVisible = false
-                heart3.isVisible = false
-                timer.performWithDelay(200, ReplaceCharacter)
+                timer.performWithDelay(200, ReplaceCharacter) 
 
             elseif (numLives == 0) then
                 -- update hearts
                 heart1.isVisible = false
                 heart2.isVisible = false
-                heart3.isVisible = false
                 timer.performWithDelay(200, YouLoseTransition)
             end
         end
@@ -267,29 +252,15 @@ local function onCollision( self, event )
             questionsAnswered = questionsAnswered + 1
         end
 
-        if (event.target.myName == "door2") then
+        if (event.target.myName == "door") then
             --check to see if the user has answered 5 questions
-            if (questionsAnswered == 5) then
+            if (questionsAnswered == 3) then
                 -- after getting 3 questions right, go to the you win screen
-                Level2Transition( )
             end
         end        
 
     end
 end
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 local function AddCollisionListeners()
@@ -309,8 +280,8 @@ local function AddCollisionListeners()
     ball3.collision = onCollision
     ball3:addEventListener( "collision" )
 
-    door2.collision = onCollision
-    door2:addEventListener( "collision" )
+    door.collision = onCollision
+    door:addEventListener( "collision" )
 end
 
 local function RemoveCollisionListeners()
@@ -322,7 +293,7 @@ local function RemoveCollisionListeners()
     ball2:removeEventListener( "collision" )
     ball3:removeEventListener( "collision" )
 
-    door2:removeEventListener( "collision")
+    door:removeEventListener( "collision")
 
 end
 
@@ -348,9 +319,9 @@ local function AddPhysicsBodies()
 
     physics.addBody(ball1, "static",  {density=0, friction=0, bounce=0} )
     physics.addBody(ball2, "static",  {density=0, friction=0, bounce=0} )
-    physics.addBody(ball3, "static",  {density=0, friction=0, bounce=0} )    
+    physics.addBody(ball3, "static",  {density=0, friction=0, bounce=0} )
 
-    physics.addBody(door2, "static", {density=1, friction=0.3, bounce=0.2})
+    physics.addBody(door, "static", {density=1, friction=0.3, bounce=0.2})
 
 end
 
@@ -369,9 +340,12 @@ local function RemovePhysicsBodies()
     physics.removeBody(spikes3platform)
 
     physics.removeBody(leftW)
+    physics.removeBody(rightW)
     physics.removeBody(topW)
     physics.removeBody(floor)
- 
+
+    physics.removeBody(door)
+
 end
 
 -----------------------------------------------------------------------------------------
@@ -402,8 +376,6 @@ function scene:create( event )
     -- Creating a group that associates objects with the scene
     local sceneGroup = self.view
 
-    -----------------------------------------------------------------------------------------
-
     -- Insert the background image
     bkg_image = display.newImageRect("Images/Level-1BKG.png", display.contentWidth, display.contentHeight)
     bkg_image.x = display.contentWidth / 2 
@@ -412,7 +384,6 @@ function scene:create( event )
     -- Insert background image into the scene group in order to ONLY be associated with this scene
     sceneGroup:insert( bkg_image )    
     
-
     -- Insert the platforms
     platform1 = display.newImageRect("Images/Level-1Platform1.png", 250, 50)
     platform1.x = display.contentWidth * 1 / 8
@@ -489,16 +460,10 @@ function scene:create( event )
     door = display.newImage("Images/Level-1Door.png", 200, 200)
     door.x = display.contentWidth/5 
     door.y = display.contentHeight*6.1/7
-    --door.myName = "door"
+    door.myName = "door"
 
     -- Insert objects into the scene group in order to ONLY be associated with this scene
     sceneGroup:insert( door )
-
-     -- Door 2
-    door2 = display.newRect (155, 650, 200, 200)
-    door2.isVisible = false
-    door2.myName = "door2"
-
 
     -- Insert the Hearts
     heart1 = display.newImageRect("Images/heart.png", 80, 80)
@@ -517,19 +482,11 @@ function scene:create( event )
     -- Insert objects into the scene group in order to ONLY be associated with this scene
     sceneGroup:insert( heart2 )
 
-    heart3 = display.newImageRect("Images/heart.png", 80, 80)
-    heart3.x = 210
-    heart3.y = 50
-    heart3.isVisible = true
-    
-    -- Insert objects into the scene group in order to ONLY be associated with this scene
-    sceneGroup:insert( heart3 )
-
     --Insert the right arrow
     rArrow = display.newImageRect("Images/RightArrowUnpressed.png", 100, 50)
     rArrow.x = display.contentWidth * 9.2 / 10
     rArrow.y = display.contentHeight * 9.5 / 10
-
+   
     -- Insert objects into the scene group in order to ONLY be associated with this scene
     sceneGroup:insert( rArrow)
 
@@ -541,12 +498,11 @@ function scene:create( event )
     -- Insert objects into the scene group in order to ONLY be associated with this scene
     sceneGroup:insert( uArrow)
 
-    --Insert the left arrow
-    lArrow = display.newImageRect("Images/LeftArrowUnpressed.png", 100, 50)
+        lArrow = display.newImageRect("Images/LeftArrowUnpressed.png", 100, 50)
     lArrow.x = display.contentWidth * 7.2 / 10
     lArrow.y = display.contentHeight * 9.5 / 10
 
-    -- Insert objects into the scene group in order to ONLY be associated with this scene
+    -- Insert objects into the scene group in order to ONLY be associated with this scene    
     sceneGroup:insert( lArrow)
 
     --WALLS--
@@ -556,8 +512,7 @@ function scene:create( event )
     -- Insert objects into the scene group in order to ONLY be associated with this scene
     sceneGroup:insert( leftW )
 
-    rightW = display.newLine( 0, 0, 0, display.contentHeight)
-    rightW.x = display.contentCenterX * 2
+    rightW = display.newLine( display.contentWidth, 0, display.contentWidth, display.contentHeight)
     rightW.isVisible = true
 
     -- Insert objects into the scene group in order to ONLY be associated with this scene
@@ -576,28 +531,10 @@ function scene:create( event )
     -- Insert objects into the scene group in order to ONLY be associated with this scene
     sceneGroup:insert( floor )
 
-    -- You Lose screen
-    YouLose = display. newImageRect ("Images/YouLose.png", display.contentWidth, contentHeight)
-    YouLose.isVisible = false
-    YouLose.x = display.contentWidth / 2
-    YouLose.y = display.contentHeight / 2
-
-    -- Insert objects into the scene group in order to ONLY be associated with this scene
-    sceneGroup:insert ( YouLose )  
-
-    -- You Win screen
-    YouWin = display. newImageRect ("Images/YouWin.png", display.contentWidth, contentHeight)
-    YouWin.isVisible = false
-    YouWin.x = display.contentWidth / 2
-    YouWin.y = display.contentHeight / 2
-
-    -- Insert objects into the scene group in order to ONLY be associated with this scene
-    sceneGroup:insert ( YouWin )
-
     --ball1
     ball1 = display.newImageRect ("Images/SoccerBall.png", 70, 70)
-    ball1.x = 770
-    ball1.y = 275
+    ball1.x = 610
+    ball1.y = 480
     ball1.myName = "ball1"
 
     -- Insert objects into the scene group in order to ONLY be associated with this scene
@@ -605,8 +542,8 @@ function scene:create( event )
 
     --ball2
     ball2 = display.newImageRect ("Images/SoccerBall.png", 70, 70)
-    ball2.x = 610
-    ball2.y = 480
+    ball2.x = 490
+    ball2.y = 170
     ball2.myName = "ball2"
 
     -- Insert objects into the scene group in order to ONLY be associated with this scene
@@ -614,8 +551,8 @@ function scene:create( event )
 
     --ball3
     ball3 = display.newImageRect ("Images/SoccerBall.png", 70, 70)
-    ball3.x = 490
-    ball3.y = 170
+    ball3.x = 950
+    ball3.y = 140
     ball3.myName = "ball3"
 
     -- Insert objects into the scene group in order to ONLY be associated with this scene
@@ -650,7 +587,7 @@ function scene:show( event )
         -- Insert code here to make the scene come alive.
         -- Example: start timers, begin animation, play audio, etc.
 
-        numLives = 3
+        numLives = 2
         questionsAnswered = 0
 
         -- make all soccer balls visible
@@ -664,9 +601,6 @@ function scene:show( event )
 
         -- add collision listeners to objects
         AddCollisionListeners()
-
-        -- add arrow listeners for buttons
-        AddArrowEventListeners()
 
         -- create the character, add physics bodies and runtime listeners
         ReplaceCharacter()
