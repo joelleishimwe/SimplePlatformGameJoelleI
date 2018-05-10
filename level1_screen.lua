@@ -192,7 +192,7 @@ end
 local function Level2Transition( )
     composer.gotoScene( "you_win" )
     --audio.stop ()
-
+    youWinSoundChannel = audio.play(youWinSound)
 end
 
 local function onCollision( self, event )
